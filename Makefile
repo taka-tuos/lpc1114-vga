@@ -13,7 +13,7 @@ SRAM = 4K
 SRAM_USB = 0
 
 VPATH = 
-OBJS = main.o
+OBJS = main.o vt100.o
 
 ##########################################################################
 # Debug settings
