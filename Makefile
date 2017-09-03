@@ -13,7 +13,7 @@ SRAM = 4K
 SRAM_USB = 0
 
 VPATH = 
-OBJS = main.o vt100.o
+OBJS = main.o vt100.o xprintf.o fifo.o
 
 ##########################################################################
 # Debug settings
@@ -88,7 +88,7 @@ OPTDEFINES = -D __NEWLIB__
 VPATH += core core/adc core/cpu core/gpio core/i2c core/pmu
 VPATH += core/ssp core/systick core/uart
 VPATH += core/libc core/wdt core/iap
-OBJS += adc.o cpu.o gpio.o i2c.o pmu.o ssp.o systick.o
+OBJS += adc.o cpu.o gpio.o pmu.o ssp.o systick.o
 OBJS += uart.o uart_buf.o stdio.o string.o wdt.o sysinit.o
 OBJS += iap.o
 

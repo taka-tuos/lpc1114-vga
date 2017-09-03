@@ -97,7 +97,7 @@ void _vt100_reset(void){
   term.scroll_value = 0; 
   term.scroll_start_row = 0;
   term.scroll_end_row = VT100_HEIGHT; // outside of screen = whole screen scrollable
-  term.flags.cursor_wrap = 0;
+  term.flags.cursor_wrap = 1;
   term.flags.origin_mode = 0; 
 }
 
@@ -168,15 +168,21 @@ void _vt100_scroll(struct vt100 *t, int16_t lines){
 	if(lines > 0) {
 		for(int i = 0; i < lines; i++) {
 			for(int j = t->scroll_start_row; j < t->scroll_end_row; j++) {
-				memcpy(vfb+(j-1)*32,vfb+j*32,32*2);
+				uint16_t *p = vfb+(j-1)*32, *q = vfb+j*32;
+				for(int k = 0; k < 32; k++) p[k]=q[k]&0xff;
 			}
 		}
+		uint16_t *p = vfb+32*23;
+		for(int k = 0; k < 32; k++) p[k]=0;
 	} else {
 		for(int i = 0; i < -lines; i++) {
 			for(int j = t->scroll_end_row-1; j >= t->scroll_start_row; j--) {
-				memcpy(vfb+(j+1)*32,vfb+j*32,32*2);
+				uint16_t *p = vfb+(j+1)*32, *q = vfb+j*32;
+				for(int k = 0; k < 32; k++) p[k]=q[k]&0xff;
 			}
 		}
+		uint16_t *p = vfb;
+		for(int k = 0; k < 32; k++) p[k]=0;
 	}
 	
 	/*
@@ -220,7 +226,7 @@ void _vt100_move(struct vt100 *term, int16_t right_left, int16_t bottom_top){
 	if(new_x >= VT100_WIDTH){
 		if(term->flags.cursor_wrap){
 			bottom_top += new_x / VT100_WIDTH;
-			term->cursor_x = new_x % (VT100_WIDTH - 1);
+			term->cursor_x = (new_x % VT100_WIDTH);
 		} else {
 			term->cursor_x = VT100_WIDTH - 1;
 		}
@@ -364,6 +370,7 @@ STATE(_st_esc_sq_bracket, term, ev, arg){
 					case 'f': 
 					case 'H': { // move cursor to position (default 0;0)
 						// cursor stops at respective margins
+						vfb[term->cursor_y*32+term->cursor_x] &= 0xff;
 						term->cursor_x = (term->narg >= 1)?(term->args[1]-1):0; 
 						term->cursor_y = (term->narg == 2)?(term->args[0]-1):0;
 						if(term->flags.origin_mode) {
@@ -800,6 +807,7 @@ STATE(_st_idle, term, ev, arg){
 					break;
 				}
 				case '\r': { // carrage return (0x0d)
+					vfb[term->cursor_y*32+term->cursor_x] &= 0xff;
 					term->cursor_x = 0; 
 					//_vt100_move(term, 0, 1);
 					//_vt100_moveCursor(term, 0, term->cursor_y); 
@@ -807,6 +815,7 @@ STATE(_st_idle, term, ev, arg){
 				}
 				case '\b': { // backspace 0x08
 					_vt100_move(term, -1, 0); 
+					vfb[term->cursor_y*32+term->cursor_x] = 0;
 					// backspace does not delete the character! Only moves cursor!
 					//ili9340_drawChar(term->cursor_x * term->char_width,
 					//	term->cursor_y * term->char_height, ' ');
@@ -816,8 +825,8 @@ STATE(_st_idle, term, ev, arg){
 					// Problem: with current implementation, we can't move the rest of line
 					// to the left as is the proper behavior of the delete character
 					// fill the current position with background color
-					_vt100_putc(term, ' ');
 					_vt100_move(term, -1, 0);
+					vfb[term->cursor_y*32+term->cursor_x] = 0;
 					//_vt100_clearChar(term, term->cursor_x, term->cursor_y); 
 					break;
 				}
