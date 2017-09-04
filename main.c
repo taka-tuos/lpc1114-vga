@@ -157,11 +157,11 @@ const uint8_t ps2_keymap[2][PS2_KEYMAP_SIZE] = {
   0, 0, 0, PS2_F7 }
 };
 
-void TIMER16_1_IRQHandler(void)
+void TIMER32_1_IRQHandler(void)
 {
-	TMR_TMR16B1IR = TMR_TMR16B1IR_MR0;
+	TMR_TMR32B1IR = TMR_TMR32B1IR_MR0;
 	
-	gpioSetValue(1,8,vline <= 12 && vline >= 11 ? 0 : 1);
+	gpioSetValue(1,2,vline <= 12 && vline >= 11 ? 0 : 1);
 	
 	vline++;
 	if(vline > 525) {
@@ -209,8 +209,8 @@ int main(void)
 	// Configure cpu and mandatory peripherals
 	systemInit();
 	
-	gpioSetDir(1,9,gpioDirection_Output);
-	gpioSetDir(1,8,gpioDirection_Output);
+	gpioSetDir(1,1,gpioDirection_Output);
+	gpioSetDir(1,2,gpioDirection_Output);
 	
 	gpioSetDir(0,7,gpioDirection_Input);
 	gpioSetDir(0,4,gpioDirection_Input);
@@ -221,38 +221,40 @@ int main(void)
 	for(int i=0;i<32*24;i++) vfb[i]=0;
 	
 	 /* Enable the clock for CT16B1 */
-	SCB_SYSAHBCLKCTRL |= (SCB_SYSAHBCLKCTRL_CT16B1);
+	SCB_SYSAHBCLKCTRL |= (SCB_SYSAHBCLKCTRL_CT32B1);
 
-	/* Configure PIO1.9 as Timer1_16 MAT0 Output */
-	IOCON_PIO1_9 &= ~IOCON_PIO1_9_FUNC_MASK;
-	IOCON_PIO1_9 |= IOCON_PIO1_9_FUNC_CT16B1_MAT0;  
+	/* Configure PIO1.1 as Timer1_32 MAT0 Output */
+	IOCON_JTAG_TDO_PIO1_1 &= ~IOCON_JTAG_TDO_PIO1_1_FUNC_MASK;
+	IOCON_JTAG_TDO_PIO1_1 |= IOCON_JTAG_TDO_PIO1_1_FUNC_CT32B1_MAT0;  
+	IOCON_JTAG_nTRST_PIO1_2 &= ~IOCON_JTAG_nTRST_PIO1_2_FUNC_MASK;
+	IOCON_JTAG_nTRST_PIO1_2 |= IOCON_JTAG_nTRST_PIO1_2_FUNC_GPIO;
 
 	/* Set default pulse width (MR3)*/
-	TMR_TMR16B1MR3 = 800.0f * VPIXCLK;
+	TMR_TMR32B1MR3 = 800.0f * VPIXCLK;
 
 	/* Set default duty cycle (MR0) */
-	TMR_TMR16B1MR0 = 96.0f * VPIXCLK;
+	TMR_TMR32B1MR0 = 96.0f * VPIXCLK;
 
 	/* Configure match control register to reset on MR3 */
-	TMR_TMR16B1MCR = (TMR_TMR16B1MCR_MR3_RESET_ENABLED);
+	TMR_TMR32B1MCR = (TMR_TMR32B1MCR_MR3_RESET_ENABLED);
 
 	/* External Match Register Settings for PWM */
-	TMR_TMR16B1EMR = TMR_TMR16B1EMR_EMC0_TOGGLE | TMR_TMR16B1EMR_EM0;
+	TMR_TMR32B1EMR = TMR_TMR32B1EMR_EMC0_TOGGLE | TMR_TMR32B1EMR_EM0;
 
 	/* Disable Timer1 by default (enabled by pwmStart of pwmStartFixed) */
-	TMR_TMR16B1TCR &= ~TMR_TMR16B1TCR_COUNTERENABLE_MASK;
+	TMR_TMR32B1TCR &= ~TMR_TMR32B1TCR_COUNTERENABLE_MASK;
 
 	/* Enable PWM0 and PWM3 */
-	TMR_TMR16B1PWMC = TMR_TMR16B1PWMC_PWM0_ENABLED | TMR_TMR16B1PWMC_PWM3_ENABLED;
+	TMR_TMR32B1PWMC = TMR_TMR32B1PWMC_PWM0_ENABLED | TMR_TMR32B1PWMC_PWM3_ENABLED;
 
 	/* Make sure that the timer interrupt is enabled */
-	NVIC_EnableIRQ(TIMER_16_1_IRQn);
+	NVIC_EnableIRQ(TIMER_32_1_IRQn);
 	
 	/* Disable interrupt on MR3 in case it was enabled by pwmStartFixed() */
-	TMR_TMR16B1MCR  = (TMR_TMR16B1MCR_MR0_INT_ENABLED | TMR_TMR16B1MCR_MR3_RESET_ENABLED);
+	TMR_TMR32B1MCR  = (TMR_TMR32B1MCR_MR0_INT_ENABLED | TMR_TMR32B1MCR_MR3_RESET_ENABLED);
 
 	/* Enable Timer1 */
-	TMR_TMR16B1TCR = TMR_TMR16B1TCR_COUNTERENABLE_ENABLED;
+	TMR_TMR32B1TCR = TMR_TMR32B1TCR_COUNTERENABLE_ENABLED;
 	
 	sspInit(0,sspClockPolarity_High,sspClockPhase_FallingEdge);
 	
